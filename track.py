@@ -1,5 +1,5 @@
 import argparse
-
+import json
 import os
 # limit the number of cpus used by high performance libraries
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -133,6 +133,10 @@ def run(
             )
         outputs = [None] * nr_sources
 
+        #creating dictionary for segments where key is vehicle id and value contains list of frames
+        segments={}
+        jsonObject={}
+
         # Run tracking
         model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
         dt, seen = [0.0, 0.0, 0.0, 0.0], 0
@@ -178,7 +182,6 @@ def run(
                         txt_file_name = p.parent.name  # get folder name containing current img
                         save_path = str(save_dir / p.parent.name)  # im.jpg, vid.mp4, ...
                 curr_frames[i] = im0
-
                 txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
                 s += '%gx%g ' % im.shape[2:]  # print string
                 imc = im0.copy() if save_crop else im0  # for save_crop
@@ -222,11 +225,42 @@ def run(
                                 bbox_top = output[1]
                                 bbox_w = output[2] - output[0]
                                 bbox_h = output[3] - output[1]
+                                keyFrames=[]
+                                if id in segments :
+                                    keyFrames=segments.get(id)["keyframes"]
+                                    frame={
+                                            "frame": frame_idx + 1,
+                                            "bbox" : {
+                                                "top": bbox_top,
+                                                "left": bbox_left,
+                                                "height": bbox_h,
+                                                "width": bbox_w
+                                            }
+                                        }
+                                    keyFrames.append(frame)
+                                    segments.update({id : {'keyframes' : keyFrames}})
+                                else :
+                                    frame=[{
+                                            "frame": frame_idx + 1,
+                                            "bbox" : {
+                                                "top": bbox_top,
+                                                "left": bbox_left,
+                                                "height": bbox_h,
+                                                "width": bbox_w
+                                            },
+                                            'classifications': [{
+                                                        'name' : 'type',
+                                                        'answer' : { 'name' : names[int(cls)]}
+                                                    }]
+                                        }]
+                                    keyFrames=frame
+                                    segments[id]={"keyframes" : keyFrames}
+                                """
                                 # Write MOT compliant results to file
                                 with open(txt_path + '.txt', 'a') as f:
                                     f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
                                                                 bbox_top, bbox_w, bbox_h, -1, -1, -1, i))
-
+                                """
                             if save_vid or save_crop or show_vid:  # Add bbox to image
                                 c = int(cls)  # integer class
                                 id = int(id)  # integer id
@@ -268,6 +302,17 @@ def run(
                 prev_frames[i] = curr_frames[i]
 
         final_count_pt = str(save_dir)  + '/final_count.txt'
+
+        #final json
+        bbox_annotation_ndjson = {
+                                "name" : "Vehicle",
+                                'dataRow': {'globalKey': 'clexepa3n0hf507a0brykf4wq'},
+                                "segments" : [] }
+        for segment in segments.values():
+            bbox_annotation_ndjson["segments"].append(segment)
+        LOGGER.info(f'json{bbox_annotation_ndjson}')
+        with open("bbox_annotation_ndjson.json", "w") as outfile:
+            json.dump(bbox_annotation_ndjson, outfile)
 
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
