@@ -136,7 +136,7 @@ def run(
         #creating dictionary for segments where key is vehicle id and value contains list of frames
         segments={}
         jsonObject={}
-
+        global_key =''
         # Run tracking
         model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
         dt, seen = [0.0, 0.0, 0.0, 0.0], 0
@@ -168,18 +168,18 @@ def run(
                     p, im0, _ = path[i], im0s[i].copy(), dataset.count
                     p = Path(p)  # to Path
                     s += f'{i}: '
-                    txt_file_name = p.name
+                    global_key=txt_file_name = p.name
                     save_path = str(save_dir / p.name)  # im.jpg, vid.mp4, ...
                 else:
                     p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
                     p = Path(p)  # to Path
                     # video file
                     if source.endswith(VID_FORMATS):
-                        txt_file_name = p.stem
+                        global_key=txt_file_name = p.stem
                         save_path = str(save_dir / p.name)  # im.jpg, vid.mp4, ...
                     # folder with imgs
                     else:
-                        txt_file_name = p.parent.name  # get folder name containing current img
+                        global_key=txt_file_name = p.parent.name  # get folder name containing current img
                         save_path = str(save_dir / p.parent.name)  # im.jpg, vid.mp4, ...
                 curr_frames[i] = im0
                 txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
@@ -306,7 +306,7 @@ def run(
         #final json
         bbox_annotation_ndjson = {
                                 "name" : "Vehicle",
-                                'dataRow': {'globalKey': 'clexepa3n0hf507a0brykf4wq'},
+                                'dataRow': {'globalKey': global_key},
                                 "segments" : [] }
         for segment in segments.values():
             bbox_annotation_ndjson["segments"].append(segment)
