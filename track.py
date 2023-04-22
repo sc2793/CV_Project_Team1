@@ -182,7 +182,6 @@ def run(
                         txt_file_name = p.parent.name  # get folder name containing current img
                         save_path = str(save_dir / p.parent.name)  # im.jpg, vid.mp4, ...
                 curr_frames[i] = im0
-
                 txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
                 s += '%gx%g ' % im.shape[2:]  # print string
                 imc = im0.copy() if save_crop else im0  # for save_crop
@@ -256,12 +255,12 @@ def run(
                                         }]
                                     keyFrames=frame
                                     segments[id]={"keyframes" : keyFrames}
-                                
+                                """
                                 # Write MOT compliant results to file
                                 with open(txt_path + '.txt', 'a') as f:
                                     f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
                                                                 bbox_top, bbox_w, bbox_h, -1, -1, -1, i))
-
+                                """
                             if save_vid or save_crop or show_vid:  # Add bbox to image
                                 c = int(cls)  # integer class
                                 id = int(id)  # integer id
@@ -307,13 +306,14 @@ def run(
         #final json
         bbox_annotation_ndjson = {
                                 "name" : "Vehicle",
-                                'dataRow': {'ID': 'clexepa3n0hf507a0brykf4wq'},
+                                'dataRow': {'globalKey': 'clexepa3n0hf507a0brykf4wq'},
                                 "segments" : [] }
         for segment in segments.values():
             bbox_annotation_ndjson["segments"].append(segment)
-        print(bbox_annotation_ndjson)
-        with open("sample.json", "w") as outfile:
+        LOGGER.info(f'json{bbox_annotation_ndjson}')
+        with open("bbox_annotation_ndjson.json", "w") as outfile:
             json.dump(bbox_annotation_ndjson, outfile)
+
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
 
