@@ -70,6 +70,8 @@ def run(
         hide_class=False,  # hide IDs
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
+        json_name='sample.json',
+        key_frame_spacing = 0,
 ):
 
     for source in sources:
@@ -135,6 +137,7 @@ def run(
 
         #creating dictionary for segments where key is vehicle id and value contains list of frames
         segments={}
+        last_frame = {}
         jsonObject={}
 
         # Run tracking
@@ -213,7 +216,7 @@ def run(
                     # draw boxes for visualization
                     if len(outputs[i]) > 0:
                         for j, (output, conf) in enumerate(zip(outputs[i], confs)):
-        
+
                             bboxes = output[0:4]
                             id = output[4]
                             cls = output[5]
@@ -228,18 +231,20 @@ def run(
                                 bbox_h = output[3] - output[1]
                                 keyFrames=[]
                                 if id in segments :
-                                    keyFrames=segments.get(id)["keyframes"]
-                                    frame={
-                                            "frame": frame_idx + 1,
-                                            "bbox" : {
-                                                "top": bbox_top,
-                                                "left": bbox_left,
-                                                "height": bbox_h,
-                                                "width": bbox_w
-                                            }
-                                        }
-                                    keyFrames.append(frame)
-                                    segments.update({id : {'keyframes' : keyFrames}})
+                                    if (frame_idx > last_frame[id] + int(key_frame_spacing)):
+                                        keyFrames=segments.get(id)["keyframes"]
+                                        frame={
+                                                "frame": frame_idx + 1,
+                                                "bbox" : {
+                                                    "top": bbox_top,
+                                                    "left": bbox_left,
+                                                    "height": bbox_h,
+                                                    "width": bbox_w
+                                                    }
+                                                }
+                                        keyFrames.append(frame)
+                                        segments.update({id : {'keyframes' : keyFrames}})
+                                        last_frame[id] = frame_idx
                                 else :
                                     frame=[{
                                             "frame": frame_idx + 1,
@@ -256,7 +261,8 @@ def run(
                                         }]
                                     keyFrames=frame
                                     segments[id]={"keyframes" : keyFrames}
-                                
+                                    last_frame[id] = frame_idx
+
                                 # Write MOT compliant results to file
                                 with open(txt_path + '.txt', 'a') as f:
                                     f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
@@ -312,7 +318,7 @@ def run(
         for segment in segments.values():
             bbox_annotation_ndjson["segments"].append(segment)
         print(bbox_annotation_ndjson)
-        with open("sample.json", "w") as outfile:
+        with open(json_name, "w") as outfile:
             json.dump(bbox_annotation_ndjson, outfile)
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
@@ -332,8 +338,8 @@ def parse_opt():
     parser.add_argument('--yolo-weights', nargs='+', type=str, default=WEIGHTS / 'yolov5m.pt', help='model.pt path(s)')
     parser.add_argument('--strong-sort-weights', type=str, default=WEIGHTS / 'osnet_x0_25_msmt17.pt')
     parser.add_argument('--config-strongsort', type=str, default='strong_sort/configs/strong_sort.yaml')
-    # parser.add_argument('--sources', type=str, default=[], help='file/dir/URL/glob, 0 for webcam')  
-    parser.add_argument('--sources', type=str, nargs='+', help='file/dir/URL/glob, 0 for webcam')  
+    # parser.add_argument('--sources', type=str, default=[], help='file/dir/URL/glob, 0 for webcam')
+    parser.add_argument('--sources', type=str, nargs='+', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
@@ -360,6 +366,8 @@ def parse_opt():
     parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+    parser.add_argument('--json_name', default='sample.json', help='name for the json file with key frames')
+    parser.add_argument('--key_frame_spacing', default=0, help='at least X frames between consecutive key frames')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(vars(opt))
