@@ -5,14 +5,14 @@ import argparse
 import json
 
 class UploadLabel(object):
-    def __init__(self, labels, project_id, ontology_id=""):
+    def __init__(self, api_key, labels, project_id, ontology_id=""):
         print("initialised")
-        API_KEY=input("Enter API Key:\n")
-        self.client = lb.Client(api_key=API_KEY)
-        # self.ontology = client.get_ontology(ontology_id)
+        self.client = lb.Client(api_key=api_key)
         self.project = self.client.get_project(project_id)
         labels = json.load(labels)
         self.labels = labels if isinstance(labels, list) else [labels]
+        # if you want to get an ontology
+        # self.ontology = client.get_ontology(ontology_id)
         # self.project.setup_editor(self.ontology)
 
     def upload_video(self, global_key, row_data, dataset="video_demo_dataset"):
@@ -55,9 +55,10 @@ class UploadLabel(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="upload_labels.py")
-    parser.add_argument("--label_file", type=argparse.FileType('r'))
-    parser.add_argument("--project_id")
-    parser.add_argument("--ontology_id", default="")
+    parser.add_argument("--api-key")
+    parser.add_argument("--label-file", type=argparse.FileType('r'))
+    parser.add_argument("--project-id")
+    parser.add_argument("--ontology-id", default="")
     opt = parser.parse_args()
-    u = UploadLabel(opt.label_file, project_id=opt.project_id, ontology_id=opt.ontology_id)
+    u = UploadLabel(opt.api_key, opt.label_file, project_id=opt.project_id, ontology_id=opt.ontology_id)
     u.run()
