@@ -1,14 +1,17 @@
 import labelbox as lb
 import uuid
 from test_label import sample_label
+import argparse
+import json
 
 class UploadLabel(object):
     def __init__(self, labels, project_id, ontology_id=""):
         print("initialised")
-        API_KEY=input("Enter API Key")
+        API_KEY=input("Enter API Key:\n")
         self.client = lb.Client(api_key=API_KEY)
         # self.ontology = client.get_ontology(ontology_id)
         self.project = self.client.get_project(project_id)
+        labels = json.load(labels)
         self.labels = labels if isinstance(labels, list) else [labels]
         # self.project.setup_editor(self.ontology)
 
@@ -51,5 +54,10 @@ class UploadLabel(object):
         self.upload_labels()
 
 if __name__ == '__main__':
-    u = UploadLabel(sample_label, project_id="clgl0y7dg0cxi07xj3b7k6gy4")
+    parser = argparse.ArgumentParser(prog="upload_labels.py")
+    parser.add_argument("--label_file", type=argparse.FileType('r'))
+    parser.add_argument("--project_id")
+    parser.add_argument("--ontology_id", default="")
+    opt = parser.parse_args()
+    u = UploadLabel(opt.label_file, project_id=opt.project_id, ontology_id=opt.ontology_id)
     u.run()
