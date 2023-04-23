@@ -310,8 +310,7 @@ def run(
                                 "segments" : [] }
         for segment in segments.values():
             bbox_annotation_ndjson["segments"].append(segment)
-        LOGGER.info(f'json{bbox_annotation_ndjson}')
-        with open("bbox_annotation_ndjson.json", "w") as outfile:
+        with open(str(save_dir)+'/bbox_annotation_ndjson.json', "w") as outfile:
             json.dump(bbox_annotation_ndjson, outfile)
 
         with open(final_count_pt + '.txt', 'a') as f:
