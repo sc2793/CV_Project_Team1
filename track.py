@@ -70,7 +70,7 @@ def run(
         hide_class=False,  # hide IDs
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        verbose=True # Utilize the LOGGER to print logs
+        verbose=False # Utilize the LOGGER to print logs
 ):
 
     for source in sources:
@@ -395,7 +395,7 @@ def parse_opt():
     parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
-    parser.add_argument('--verbose', default=True, action='store_true', help='Write Logs during runtime')
+    parser.add_argument('--verbose', default=False, action='store_true', help='Write Logs during runtime')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(vars(opt))
