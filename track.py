@@ -133,8 +133,10 @@ def run(
             )
         outputs = [None] * nr_sources
 
-        #creating dictionary for segments where key is vehicle id and value contains list of frames
-        segments={}
+        #creating dictionary for tracked where key is vehicle id 
+        # and value contains list of segments, 
+        # each containing a list of frames
+        tracked={}
         jsonObject={}
         global_key =''
         # Run tracking
@@ -209,6 +211,27 @@ def run(
                     t5 = time_sync()
                     dt[3] += t5 - t4
 
+
+
+
+                    """
+                   Segments{
+                        object_id:{keyframes:[...]}
+                        object_id:{kkeyframes:[...]}
+                    }
+                    ====Curent====
+                    (if previous frame doesn't exist, make a new segment)
+                    [   
+                        object_id{
+                            keyframes:[...]
+                        }
+                    ]
+                    ====Desired===
+                    """
+
+
+
+
                     # draw boxes for visualization
                     if len(outputs[i]) > 0:
                         for j, (output, conf) in enumerate(zip(outputs[i], confs)):
@@ -220,41 +243,58 @@ def run(
                             classes_count[cls].append(id)
 
                             if save_txt:
-                                # to MOT format
-                                bbox_left = output[0]
-                                bbox_top = output[1]
-                                bbox_w = output[2] - output[0]
-                                bbox_h = output[3] - output[1]
-                                keyFrames=[]
-                                if id in segments :
-                                    keyFrames=segments.get(id)["keyframes"]
-                                    frame={
-                                            "frame": frame_idx + 1,
-                                            "bbox" : {
-                                                "top": bbox_top,
-                                                "left": bbox_left,
-                                                "height": bbox_h,
-                                                "width": bbox_w
-                                            }
-                                        }
-                                    keyFrames.append(frame)
-                                    segments.update({id : {'keyframes' : keyFrames}})
-                                else :
-                                    frame=[{
-                                            "frame": frame_idx + 1,
-                                            "bbox" : {
-                                                "top": bbox_top,
-                                                "left": bbox_left,
-                                                "height": bbox_h,
-                                                "width": bbox_w
-                                            },
-                                            'classifications': [{
-                                                        'name' : 'type',
-                                                        'answer' : { 'name' : names[int(cls)]}
-                                                    }]
+                                # To labelbox's json format
+                                bbox = {
+                                    "top": output[1],
+                                    "left": output[0],
+                                    "height": output[3] - output[1],
+                                    "width": output[2] - output[0]
+                                }
+                                frame = frame_idx + 1
+                                classifications =[{
+                                        'name' : 'radio_class',
+                                        'answer' : { 'name' : names[ int( cls ) ] }        
+                                    }
+                                ]
+                                global_key = {'globalKey': global_key}
+                                
+
+                                if id in tracked : #we've seen this trackable object before
+                                    #we find the most recent segment of a tracked object
+                                    segments = tracked.get(id)["segments"]
+                                    last_segment = segments[-1]
+                                    last_segment_key_frames = last_segment["keyframes"]
+                                    last_frame_seen = last_segment_key_frames[-1]
+                                    if last_frame_seen["frame"] == frame_idx: #if the tracked object was visible in the last frame
+                                        #we append to the last segment's key frames list
+                                        last_segment_key_frames.append({
+                                            "frame":frame,
+                                            "bbox":bbox
+                                            } 
+                                        )
+                                    else:#if the tracked object was NOT visible in the last frame
+                                        #we create a new segment
+                                        segments.append({
+                                            "keyframes":[{
+                                                "frame":frame,
+                                                "bbox":bbox,
+                                                "classifications":classifications
+                                            }]
+                                        })
+                                    #tracked.update({id : {'segments' : keyFrames}})
+                                else : #We've never seen this tracked object before
+                                    #we create our new tracked object and log it for later
+                                    tracked[id]={ 
+                                        "name" : "bbox_class",
+                                        'dataRow': global_key,
+                                        "segments" : [{
+                                            "keyframes":[{
+                                                "frame":frame,
+                                                "bbox":bbox,
+                                                "classifications":classifications
+                                            }]
                                         }]
-                                    keyFrames=frame
-                                    segments[id]={"keyframes" : keyFrames}
+                                    }
                                 """
                                 # Write MOT compliant results to file
                                 with open(txt_path + '.txt', 'a') as f:
@@ -303,15 +343,9 @@ def run(
 
         final_count_pt = str(save_dir)  + '/final_count.txt'
 
-        #final json
-        bbox_annotation_ndjson = {
-                                "name" : "Vehicle",
-                                'dataRow': {'globalKey': global_key},
-                                "segments" : [] }
-        for segment in segments.values():
-            bbox_annotation_ndjson["segments"].append(segment)
+        #final json        
         with open(str(save_dir)+'/bbox_annotation_ndjson.json', "w") as outfile:
-            json.dump(bbox_annotation_ndjson, outfile)
+            json.dump(list(tracked), outfile)
 
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
