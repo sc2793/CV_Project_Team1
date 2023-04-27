@@ -258,7 +258,7 @@ def run(
                                         'answer' : { 'name' : names[ int( cls ) ] }        
                                     }
                                 ]
-                                g_key = {'globalKey': global_key+".mp4"}
+                                g_key = {'globalKey': global_key}
                                 
 
                                 if id in tracked : #we've seen this trackable object before
