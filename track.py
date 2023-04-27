@@ -288,7 +288,7 @@ def run(
                                     #we create our new tracked object and log it for later
                                     tracked[id]={ 
                                         "name" : "Vehicle",
-                                        'dataRow': g_key+".mp4",
+                                        'dataRow': g_key,
                                         "segments" : [{
                                             "keyframes":[{
                                                 "frame":frame,
