@@ -346,7 +346,7 @@ def run(
 
         #final json        
         with open(str(save_dir)+'/bbox_annotation_ndjson.json', "w") as outfile:
-            json.dump(list(tracked), outfile)
+            json.dump(list(tracked.values()), outfile)
 
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
