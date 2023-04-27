@@ -178,7 +178,8 @@ def run(
                     p = Path(p)  # to Path
                     # video file
                     if source.endswith(VID_FORMATS):
-                        global_key=txt_file_name = p.stem
+                        txt_file_name = p.stem
+                        global_key= p.name
                         save_path = str(save_dir / p.name)  # im.jpg, vid.mp4, ...
                     # folder with imgs
                     else:
