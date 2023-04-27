@@ -258,7 +258,7 @@ def run(
                                         'answer' : { 'name' : names[ int( cls ) ] }        
                                     }
                                 ]
-                                global_key = {'globalKey': global_key}
+                                g_key = {'globalKey': global_key+".mp4"}
                                 
 
                                 if id in tracked : #we've seen this trackable object before
@@ -288,7 +288,7 @@ def run(
                                     #we create our new tracked object and log it for later
                                     tracked[id]={ 
                                         "name" : "Vehicle",
-                                        'dataRow': global_key,
+                                        'dataRow': g_key,
                                         "segments" : [{
                                             "keyframes":[{
                                                 "frame":frame,
