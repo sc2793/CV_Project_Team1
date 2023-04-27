@@ -252,7 +252,7 @@ def run(
                                 }
                                 frame = frame_idx + 1
                                 classifications =[{
-                                        'name' : 'radio_class',
+                                        'name' : 'Type',
                                         'answer' : { 'name' : names[ int( cls ) ] }        
                                     }
                                 ]
@@ -285,7 +285,7 @@ def run(
                                 else : #We've never seen this tracked object before
                                     #we create our new tracked object and log it for later
                                     tracked[id]={ 
-                                        "name" : "bbox_class",
+                                        "name" : "Vehicle",
                                         'dataRow': global_key,
                                         "segments" : [{
                                             "keyframes":[{
