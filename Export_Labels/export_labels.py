@@ -38,7 +38,7 @@ class ExportLabel(object):
             vid_id+=1
         return datarows
 
-    def pull_frames(self, video_link):
+    def pull_frames(self, video_link, frame_exclusions=[]):
         '''
         //takes in a video link and returns a list of images as numpy arrays
         //return a list containing [-1] if the video failed to be pulled
@@ -47,9 +47,12 @@ class ExportLabel(object):
         vidcap = cv2.VideoCapture(video_link)
         success, image = vidcap.read()
         images = []
+        frame_count = 1
         while success:
-            images.append(image)
+            if frame_count not in frame_exclusions:
+                images.append(image)
             success, image = vidcap.read()
+            frame_count += 1
         return images if len(images)>0 else [-1]
 
 
@@ -75,14 +78,22 @@ class ExportLabel(object):
         '''
         input: [annotations], {class_dict<featureId,classification>}
         takes in a list of annotations and a dictionary
-        returns a list of tuples where each tuple is < Datarow_ID , yolo_label_string >
+        returns a list of tuples where each tuple is < Datarow_ID , yolo_label_string > and a list of frame numbers that
+        did not have any annotations attached
         '''
         print("build yolo annotations..")
         yolo_annotations = []
         datarow_id = datarow["Datarow_ID"]
         annotations = datarow["annotations"]
+        frame_exclusions = []
+        frame_count = 1
         for annotation in annotations:
             frame_number = annotation["frameNumber"]
+            if frame_number!=frame_count:
+                frame_exclusions += [f for f in range(frame_count, frame_number)]
+                frame_count = frame_number+1
+            else:
+                frame_count+=1
             yolo_label_string = ""
             for a_object in annotation["objects"]:
                 feature_id = a_object["featureId"]
@@ -90,26 +101,28 @@ class ExportLabel(object):
                 bbox = a_object["bbox"]
                 yolo_label_string += str(classification_number)+ " " + str(bbox["top"]) + " " + str(bbox["left"]) + " " + str(bbox["width"]) + " " + str(bbox["height"])
                 yolo_label_string += "\n"
-            yolo_annotations.append((str(datarow_id)+"_"+str(frame_number), yolo_label_string))
-        return yolo_annotations
+            yolo_annotations.append((str(datarow_id), yolo_label_string))
+        return yolo_annotations, frame_exclusions
 
     def run(self):
         print("Let's make some yolo labels")
-        af.make_directories(self.destination_path, "train", "tests")
+        af.make_directories(self.destination_path, "train", "test")
         datarows = self.pull_datarows()
-        print(permutations)
-        paths = af.shuffle_dir([self.destination_path+"/"+str("test"), self.destination_path+"/"+str("train")], permutations)
         print("datarows:", len(datarows))
         # images = []
         # yolo_annotations = []
         for datarow in datarows:
             class_dict = self.build_class_dict(datarow["annotations"])
-            yolo_annotations = self.build_yolo_annotations(datarow, class_dict)
-            images = self.pull_frames(datarow["video_url"])
+            yolo_annotations, frame_exclusions = self.build_yolo_annotations(datarow, class_dict)
+            images = self.pull_frames(datarow["video_url"], frame_exclusions)
+            print("images: ", len(images))
             permutations = af.make_permutations(len(images), [0, 1], [0.20, 0.80])
-            af.save_frames(images, paths, datarow["Datarow_ID"])
-            af.write_yolo_annotations(paths, yolo_annotations)
-
+            images_paths = af.shuffle_dir([self.destination_path+"/images/test", self.destination_path+"/images/train"], permutations)
+            label_paths = af.shuffle_dir([self.destination_path+"/labels/test", self.destination_path+"/labels/train"], permutations)
+            # print(label_paths)
+            af.write_yolo_annotations(label_paths, yolo_annotations)
+            result = af.save_frames(images, images_paths, datarow["Datarow_ID"])
+            
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="export_labels.py")
     parser.add_argument("--api-key")
