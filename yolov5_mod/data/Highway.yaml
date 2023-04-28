@@ -17,4 +17,4 @@ val: ../Highway/images/val/  # 128 images
 nc: 3
 
 # class names
-names: [ 'Truck', 'Bus', 'Car']
+names: [ 'truck', 'bus', 'car']

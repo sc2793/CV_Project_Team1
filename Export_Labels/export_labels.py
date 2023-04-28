@@ -3,11 +3,14 @@ import argparse
 import requests
 import ndjson
 import cv2
+import yaml
 
 class ExportLabel(object):
-    def __init__(self, api_key, project_id):
+    def __init__(self, api_key, project_id, yaml_path):
         self.api_key = api_key
         self.project_id = project_id
+        with open(yaml_path, 'r') as file:
+            self.classification_ref = yaml.safe_load(file)
 
     def pull_datarows(self):
         '''
@@ -19,7 +22,6 @@ class ExportLabel(object):
         self.project = self.client.get_project(self.project_id)
         export_url = self.project.export_labels()
         labels = requests.get(export_url).json()
-        print("labels exported: ", len(labels))
         datarows = []
         vid_id = 0
         for label in labels:
@@ -64,7 +66,7 @@ class ExportLabel(object):
                 if len(classes)==0:
                     class_dict[feature_id] = "car"
                 else:
-                    class_dict[feature_id] = classes[0]["answer"]["value"]
+                    class_dict[feature_id] = classes[0]["answer"]["value"].lower()
         return class_dict
 
     def build_yolo_annotations(self, datarow, class_dict):
@@ -82,7 +84,7 @@ class ExportLabel(object):
             yolo_label_string = ""
             for a_object in annotation["objects"]:
                 feature_id = a_object["featureId"]
-                classification_number = 1 # refer to some dictionary using feature id's value
+                classification_number = self.classification_ref["names"].index(class_dict[feature_id])
                 bbox = a_object["bbox"]
                 yolo_label_string += str(classification_number)+ " " + str(bbox["top"]) + " " + str(bbox["left"]) + " " + str(bbox["width"]) + " " + str(bbox["height"])
                 yolo_label_string += "\n"
@@ -103,6 +105,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="export_labels.py")
     parser.add_argument("--api-key")
     parser.add_argument("--project-id")
+    parser.add_argument("--yaml-path")
     opt = parser.parse_args()
-    u = ExportLabel(opt.api_key, project_id=opt.project_id)
+    u = ExportLabel(opt.api_key, project_id=opt.project_id, yaml_path=opt.yaml_path)
     u.run()
