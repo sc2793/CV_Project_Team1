@@ -54,6 +54,7 @@ class UploadLabel(object):
         self.upload_labels()
 
 if __name__ == '__main__':
+    # flag for upplaoding videos , how to upload videos (in batch or just a single file)
     parser = argparse.ArgumentParser(prog="upload_labels.py")
     parser.add_argument("--api-key")
     parser.add_argument("--label-file", type=argparse.FileType('r'))

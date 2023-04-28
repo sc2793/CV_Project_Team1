@@ -4,11 +4,13 @@ import requests
 import ndjson
 import cv2
 import yaml
+import altFile as af
 
 class ExportLabel(object):
-    def __init__(self, api_key, project_id, yaml_path):
+    def __init__(self, api_key, project_id, yaml_path, destination_path):
         self.api_key = api_key
         self.project_id = project_id
+        self.destination_path = destination_path
         with open(yaml_path, 'r') as file:
             self.classification_ref = yaml.safe_load(file)
 
@@ -93,19 +95,27 @@ class ExportLabel(object):
 
     def run(self):
         print("Let's make some yolo labels")
+        af.make_directories(self.destination_path, "train", "tests")
         datarows = self.pull_datarows()
+        print(permutations)
+        paths = af.shuffle_dir([self.destination_path+"/"+str("test"), self.destination_path+"/"+str("train")], permutations)
         print("datarows:", len(datarows))
+        # images = []
+        # yolo_annotations = []
         for datarow in datarows:
             class_dict = self.build_class_dict(datarow["annotations"])
             yolo_annotations = self.build_yolo_annotations(datarow, class_dict)
             images = self.pull_frames(datarow["video_url"])
-        
+            permutations = af.make_permutations(len(images), [0, 1], [0.20, 0.80])
+            af.save_frames(images, paths, datarow["Datarow_ID"])
+            af.write_yolo_annotations(paths, yolo_annotations)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="export_labels.py")
     parser.add_argument("--api-key")
     parser.add_argument("--project-id")
     parser.add_argument("--yaml-path")
+    parser.add_argument("--destination-path")
     opt = parser.parse_args()
-    u = ExportLabel(opt.api_key, project_id=opt.project_id, yaml_path=opt.yaml_path)
+    u = ExportLabel(opt.api_key, opt.project_id, opt.yaml_path, opt.destination_path)
     u.run()
