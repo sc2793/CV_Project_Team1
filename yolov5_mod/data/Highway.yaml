@@ -17,4 +17,4 @@ val: ../Highway/images/val/  # 128 images
 nc: 3
 
 # class names
-names: [ 'truck', 'bus', 'car']
+names: [ 'Truck', 'Bus', 'Car','Van','Tow_Truck','Pickup_Truck','Semi_Truck','Box_Truck','Dump_Truck','Construction','Sedan','SUV']
