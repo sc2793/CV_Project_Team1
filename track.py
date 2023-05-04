@@ -52,6 +52,7 @@ def run(
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         show_vid=False,  # show results
         save_txt=False,  # save results to *.txt
+        save_labelbox=False,  # save labelbox compliant trackings json file to *.json
         save_conf=False,  # save confidences in --save-txt labels
         save_crop=False,  # save cropped prediction boxes
         save_vid=False,  # save confidences in --save-txt labels
@@ -245,6 +246,11 @@ def run(
                             classes_count[cls].append(id)
 
                             if save_txt:
+                                # Write MOT compliant results to file
+                                with open(txt_path + '.txt', 'a') as f:
+                                    f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, output[0],  # MOT format
+                                                                output[0], output[2] - output[0], output[3] - output[1], -1, -1, -1, i))
+                            if save_labelbox:
                                 # To labelbox's json format
                                 bbox = {
                                     "top": output[1],
@@ -297,12 +303,7 @@ def run(
                                             }]
                                         }]
                                     }
-                                """
-                                # Write MOT compliant results to file
-                                with open(txt_path + '.txt', 'a') as f:
-                                    f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
-                                                                bbox_top, bbox_w, bbox_h, -1, -1, -1, i))
-                                """
+                               
                             if save_vid or save_crop or show_vid:  # Add bbox to image
                                 c = int(cls)  # integer class
                                 id = int(id)  # integer id
@@ -345,9 +346,10 @@ def run(
 
         final_count_pt = str(save_dir)  + '/final_count.txt'
 
-        #final json        
-        with open(str(save_dir)+'/bbox_annotation_ndjson.json', "w") as outfile:
-            json.dump(list(tracked.values()), outfile)
+        #final json 
+        if save_labelbox:       
+            with open(str(save_dir)+'/bbox_annotation_ndjson.json', "w") as outfile:
+                json.dump(list(tracked.values()), outfile)
 
         with open(final_count_pt + '.txt', 'a') as f:
             f.write(f'classes 0: {len(set(classes_count[0]))} classes 1: {len(set(classes_count[1]))} classes 2: {len(set(classes_count[2]))}')
